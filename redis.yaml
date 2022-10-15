@@ -2,7 +2,7 @@
 replicaCount: 1
 # -- Configure default namespace
 namespace: 
-  name: default
+  name: devops-dev
 # -- Image to use for deploying
 image:
   repository: mcr.microsoft.com/oss/bitnami/redis
