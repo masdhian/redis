@@ -1,0 +1,13 @@
+# define default database user, name, and password for PostgreSQL deployment
+auth:
+  enablePostgresUser: true
+  postgresPassword: "StrongPassword"
+  username: "faraday_user"
+  password: "Far4d4y4lt0"
+  database: "db_faraday"
+
+# The postgres helm chart deployment will be using PVC postgresql-data-claim
+primary:
+  persistence:
+    enabled: true
+    existingClaim: "postgresql-data-claim"
