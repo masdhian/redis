@@ -1,1 +1,73 @@
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faraday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faraday
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "True"
+      labels:
+        app: faraday
+    spec:
+      containers:
+        - name: faraday
+          image: faradaysec/faraday
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                 name: faraday-secret
+          ports:
+            - containerPort: 5985
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: faraday
+spec:
+  ports:
+    - port: 5985
+      protocol: TCP
+      targetPort: 5985
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: vs-faraday
+spec:
+  gateways:
+    - default/devops-ingress
+  hosts:
+    - "faraday-dev.local.altodev.id"
+  
+  http:
+    - route:
+        - destination:
+            host: faraday
+            port:
+              number: 5985
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: faraday-secret
+  labels:
+    app: faraday
+type: Opaque
+data:
+  PGSQL_USER: "YWRtaW4="
+  PGSQL_HOST: "ZmFyYWRheS1wb3N0Z3Jlcw=="
+  PGSQL_PASSWD: "RjRyNGQ0eTRsdDA="
+  PGSQL_DBNAME: "ZGJfZmFyYWRheQ=="
+  REDIS_SERVER: "ZmFyYWRheS1yZWRpcw=="
