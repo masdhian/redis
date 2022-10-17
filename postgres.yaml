@@ -1,26 +1,84 @@
 apiVersion: v1
-kind: PersistentVolume # Create a PV
+kind: ConfigMap
 metadata:
-  name: postgresql-data # Sets PV's name
+  name: postgres-config
   labels:
-    type: local # Sets PV's type to local
+    app: postgres
+data:
+  POSTGRES_DB: db_faraday
+  POSTGRES_USER: admin
+  POSTGRES_PASSWORD: F4r4d4y4lt0
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: postgres-faraday-volume
+  labels:
+    type: local
+    app: postgres
 spec:
   storageClassName: manual
   capacity:
-    storage: 5Gi # Sets PV Volume
+    storage: 5Gi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   hostPath:
-    path: "/data/volume" # Sets the volume's path
- ---
- apiVersion: v1
-kind: PersistentVolumeClaim # Create PVC
+    path: "/var/lib/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
 metadata:
-  name: postgresql-data-claim # Sets name of PV
+  name: postgres-faraday-claim
+  labels:
+    app: postgres
 spec:
   storageClassName: manual
   accessModes:
-    - ReadWriteOnce # Sets read and write access
+    - ReadWriteMany
   resources:
     requests:
-      storage: 5Gi # Sets volume size
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faraday-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faraday-postgres
+  template:
+    metadata:
+      labels:
+        app: faraday-postgres
+    spec:
+      containers:
+        - name: faraday-postgres
+          image: postgres:10.1
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgredb
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: postgres-faraday-claim
+---
+piVersion: v1
+kind: Service
+metadata:
+  name: faraday-postgres
+  labels:
+    app: faraday-postgres
+spec:
+  type: NodePort
+  ports:
+   - port: 5432
+  selector:
+   app: faraday-postgres
